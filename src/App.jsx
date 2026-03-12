@@ -130,97 +130,71 @@ function MapboxMap({ mapRef, mapContainerRef, onReady }) {
 }
 
 // ════════════════════════════════════════════════════════
-// SENSOR MARKER — uses actual PNG icons
+// SENSOR MARKER — single effect, innerHTML approach
 // ════════════════════════════════════════════════════════
 function SensorMarker({ sensor, isActive, map }) {
   const markerRef = useRef(null);
-  const elRef = useRef(null);
   const m = SM[sensor.type];
   const iconSrc = ICON_PATHS[sensor.type];
 
-  // Create marker once
   useEffect(() => {
     if (!map) return;
+
+    const sz = isActive ? 60 : 36;
+    const iconSz = isActive ? 28 : 16;
+    const borderW = isActive ? 3 : 2;
+    const borderColor = isActive ? m.color : 'rgba(255,255,255,0.18)';
+    const shadow = isActive
+      ? `0 0 24px ${m.color}55, 0 0 60px ${m.color}22`
+      : '0 2px 8px rgba(0,0,0,0.5)';
+
+    // Build pulse rings HTML
+    let pulsesHtml = '';
+    if (isActive) {
+      for (let d = 0; d < 2; d++) {
+        const ringSz = Math.round(sz * 2.2);
+        pulsesHtml += `<div style="position:absolute;left:50%;top:50%;width:${ringSz}px;height:${ringSz}px;margin-left:${-ringSz/2}px;margin-top:${-ringSz/2}px;border-radius:50%;border:${d===0?2:1.5}px solid ${m.color};animation:vbP 2s ease-out infinite ${d*0.7}s;opacity:${d===0?0.4:0.2};pointer-events:none;"></div>`;
+      }
+    }
+
+    // Label HTML
+    let labelHtml = '';
+    if (isActive) {
+      labelHtml = `<div style="position:absolute;left:50%;top:100%;transform:translate(-50%,8px);font-size:9px;font-weight:700;letter-spacing:2px;color:${m.color};text-shadow:0 0 12px ${m.color}50;white-space:nowrap;font-family:-apple-system,sans-serif;pointer-events:none;">${m.label.toUpperCase()}</div>`;
+    }
+
+    // Create the element with ALL content as innerHTML
     const el = document.createElement("div");
-    elRef.current = el;
+    el.style.width = sz + 'px';
+    el.style.height = sz + 'px';
+    el.style.position = 'relative';
+    el.style.cursor = 'pointer';
+    el.innerHTML = `
+      ${pulsesHtml}
+      <div style="width:${sz}px;height:${sz}px;border-radius:50%;background:#111;border:${borderW}px solid ${borderColor};display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:${shadow};position:relative;z-index:1;">
+        <img src="${iconSrc}" width="${iconSz}" height="${iconSz}" style="display:block;object-fit:contain;opacity:${isActive?1:0.5};filter:brightness(${isActive?1.3:0.9});" />
+      </div>
+      ${labelHtml}
+    `;
+
+    // Remove old marker if it exists
+    if (markerRef.current) {
+      markerRef.current.remove();
+    }
+
+    // Create new marker
     const marker = new mapboxgl.Marker({ element: el, anchor: "center" })
       .setLngLat([sensor.lng, sensor.lat])
       .addTo(map);
     markerRef.current = marker;
-    return () => { marker.remove(); markerRef.current = null; };
-  }, [map, sensor.lng, sensor.lat]);
 
-  // Update appearance when active state changes
-  useEffect(() => {
-    const el = elRef.current;
-    if (!el) return;
-
-    const sz = isActive ? 60 : 36;
-    const iconSz = isActive ? 32 : 20;
-    const containerSz = sz + 40;
-    el.style.cssText = `width:${containerSz}px;height:${containerSz}px;transition:all 0.7s cubic-bezier(0.23,1,0.32,1);position:relative;`;
-    el.innerHTML = "";
-
-    // Pulse rings for active markers
-    if (isActive) {
-      for (let d = 0; d < 2; d++) {
-        const ring = document.createElement("div");
-        ring.style.cssText = `position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:${sz * 2.2}px;height:${sz * 2.2}px;border-radius:50%;border:${d === 0 ? 2 : 1.5}px solid ${m.color};animation:vbP 2s ease-out infinite ${d * 0.7}s;opacity:${d === 0 ? 0.4 : 0.2};pointer-events:none;`;
-        el.appendChild(ring);
+    return () => {
+      if (markerRef.current) {
+        markerRef.current.remove();
+        markerRef.current = null;
       }
-    }
-
-    // Outer colored ring (visible on both active and inactive)
-    const outerRing = document.createElement("div");
-    outerRing.style.cssText = `
-      position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-      width:${sz + 6}px;height:${sz + 6}px;border-radius:50%;
-      background:${isActive ? m.color : 'transparent'};
-      opacity:${isActive ? 0.25 : 0};
-      transition:all 0.7s ease;pointer-events:none;
-    `;
-    el.appendChild(outerRing);
-
-    // Main circle — colored border, dark fill
-    const circle = document.createElement("div");
-    circle.style.cssText = `
-      position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-      width:${sz}px;height:${sz}px;border-radius:50%;
-      background:#111;
-      border:${isActive ? `3px solid ${m.color}` : `2px solid rgba(255,255,255,0.15)`};
-      display:flex;align-items:center;justify-content:center;
-      box-shadow:${isActive ? `0 0 24px ${m.color}55, 0 0 60px ${m.color}22, inset 0 0 12px ${m.color}15` : '0 2px 8px rgba(0,0,0,0.5)'};
-      transition:all 0.7s cubic-bezier(0.23,1,0.32,1);
-      overflow:hidden;
-    `;
-
-    // Icon image — the PNGs are white lines on black background.
-    // We use a combo of clip + background to make them work:
-    // The icon is rendered at full size filling the circle, and
-    // the circle's overflow:hidden clips it to the round shape.
-    // The black background of the PNG blends with #111 circle bg.
-    const img = document.createElement("img");
-    img.src = iconSrc;
-    img.alt = "";
-    img.style.cssText = `
-      display:block;
-      width:${iconSz}px;height:${iconSz}px;
-      object-fit:contain;
-      opacity:${isActive ? 1 : 0.5};
-      transition:all 0.7s ease;
-      filter:brightness(${isActive ? 1.2 : 0.8});
-    `;
-    circle.appendChild(img);
-    el.appendChild(circle);
-
-    // Label below active marker
-    if (isActive) {
-      const label = document.createElement("div");
-      label.textContent = m.label.toUpperCase();
-      label.style.cssText = `position:absolute;left:50%;top:100%;transform:translate(-50%,10px);font-size:9px;font-weight:700;letter-spacing:2px;color:${m.color};text-shadow:0 0 12px ${m.color}50;white-space:nowrap;font-family:-apple-system,sans-serif;`;
-      el.appendChild(label);
-    }
-  }, [isActive, m, iconSrc]);
+    };
+  }, [map, sensor.lng, sensor.lat, isActive, m, iconSrc]);
 
   return null;
 }
