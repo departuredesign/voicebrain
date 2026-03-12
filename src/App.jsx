@@ -155,56 +155,60 @@ function SensorMarker({ sensor, isActive, map }) {
     const el = elRef.current;
     if (!el) return;
 
-    const sz = isActive ? 60 : 38;
-    const iconSz = isActive ? 34 : 22;
-    const pulseSize = isActive ? 120 : 0;
-    el.style.cssText = `width:${sz + 20}px;height:${sz + 20}px;transition:all 0.7s cubic-bezier(0.23,1,0.32,1);position:relative;`;
+    const sz = isActive ? 60 : 36;
+    const iconSz = isActive ? 32 : 20;
+    const containerSz = sz + 40;
+    el.style.cssText = `width:${containerSz}px;height:${containerSz}px;transition:all 0.7s cubic-bezier(0.23,1,0.32,1);position:relative;`;
     el.innerHTML = "";
 
-    // Pulse rings for active
+    // Pulse rings for active markers
     if (isActive) {
       for (let d = 0; d < 2; d++) {
         const ring = document.createElement("div");
-        ring.style.cssText = `position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:${pulseSize}px;height:${pulseSize}px;border-radius:50%;border:${d === 0 ? 2 : 1.5}px solid ${m.color};animation:vbP 2s ease-out infinite ${d * 0.7}s;opacity:${d === 0 ? 0.35 : 0.18};pointer-events:none;`;
+        ring.style.cssText = `position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:${sz * 2.2}px;height:${sz * 2.2}px;border-radius:50%;border:${d === 0 ? 2 : 1.5}px solid ${m.color};animation:vbP 2s ease-out infinite ${d * 0.7}s;opacity:${d === 0 ? 0.4 : 0.2};pointer-events:none;`;
         el.appendChild(ring);
       }
     }
 
-    // Outer glow ring (always visible, stronger when active)
-    const glow = document.createElement("div");
-    glow.style.cssText = `
+    // Outer colored ring (visible on both active and inactive)
+    const outerRing = document.createElement("div");
+    outerRing.style.cssText = `
       position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-      width:${sz + 8}px;height:${sz + 8}px;border-radius:50%;
-      background:radial-gradient(circle, ${isActive ? m.color + '30' : 'rgba(255,255,255,0.06)'} 0%, transparent 70%);
-      pointer-events:none;transition:all 0.7s ease;
+      width:${sz + 6}px;height:${sz + 6}px;border-radius:50%;
+      background:${isActive ? m.color : 'transparent'};
+      opacity:${isActive ? 0.25 : 0};
+      transition:all 0.7s ease;pointer-events:none;
     `;
-    el.appendChild(glow);
+    el.appendChild(outerRing);
 
-    // Main circle with icon
+    // Main circle — colored border, dark fill
     const circle = document.createElement("div");
     circle.style.cssText = `
       position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
       width:${sz}px;height:${sz}px;border-radius:50%;
-      background:${isActive ? '#0a0a0a' : '#151515'};
-      border:${isActive ? `2.5px solid ${m.color}` : `1.5px solid rgba(255,255,255,0.2)`};
-      display:flex;align-items:center;justify-content:center;overflow:hidden;
-      box-shadow:${isActive ? `0 0 20px ${m.color}44, 0 0 60px ${m.color}18` : '0 2px 8px rgba(0,0,0,0.5)'};
+      background:#111;
+      border:${isActive ? `3px solid ${m.color}` : `2px solid rgba(255,255,255,0.15)`};
+      display:flex;align-items:center;justify-content:center;
+      box-shadow:${isActive ? `0 0 24px ${m.color}55, 0 0 60px ${m.color}22, inset 0 0 12px ${m.color}15` : '0 2px 8px rgba(0,0,0,0.5)'};
       transition:all 0.7s cubic-bezier(0.23,1,0.32,1);
+      overflow:hidden;
     `;
 
-    // The icons are white-on-black PNGs. mix-blend-mode:screen makes
-    // the black transparent, leaving only the white line art visible.
+    // Icon image — the PNGs are white lines on black background.
+    // We use a combo of clip + background to make them work:
+    // The icon is rendered at full size filling the circle, and
+    // the circle's overflow:hidden clips it to the round shape.
+    // The black background of the PNG blends with #111 circle bg.
     const img = document.createElement("img");
     img.src = iconSrc;
     img.alt = "";
-    img.width = iconSz;
-    img.height = iconSz;
     img.style.cssText = `
-      display:block;object-fit:contain;
-      mix-blend-mode:screen;
-      opacity:${isActive ? 1 : 0.55};
+      display:block;
+      width:${iconSz}px;height:${iconSz}px;
+      object-fit:contain;
+      opacity:${isActive ? 1 : 0.5};
       transition:all 0.7s ease;
-      filter:${isActive ? `drop-shadow(0 0 4px ${m.color}60)` : 'none'};
+      filter:brightness(${isActive ? 1.2 : 0.8});
     `;
     circle.appendChild(img);
     el.appendChild(circle);
