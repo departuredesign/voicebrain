@@ -155,37 +155,57 @@ function SensorMarker({ sensor, isActive, map }) {
     const el = elRef.current;
     if (!el) return;
 
-    const sz = isActive ? 56 : 28;
-    const iconSz = isActive ? 30 : 16;
-    el.style.cssText = `width:${sz}px;height:${sz}px;transition:all 0.7s cubic-bezier(0.23,1,0.32,1);position:relative;`;
+    const sz = isActive ? 60 : 38;
+    const iconSz = isActive ? 34 : 22;
+    const pulseSize = isActive ? 120 : 0;
+    el.style.cssText = `width:${sz + 20}px;height:${sz + 20}px;transition:all 0.7s cubic-bezier(0.23,1,0.32,1);position:relative;`;
     el.innerHTML = "";
 
     // Pulse rings for active
     if (isActive) {
       for (let d = 0; d < 2; d++) {
         const ring = document.createElement("div");
-        ring.style.cssText = `position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:100px;height:100px;border-radius:50%;border:${d === 0 ? 2 : 1.5}px solid ${m.color};animation:vbP 2s ease-out infinite ${d * 0.7}s;opacity:${d === 0 ? 0.3 : 0.15};pointer-events:none;`;
+        ring.style.cssText = `position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:${pulseSize}px;height:${pulseSize}px;border-radius:50%;border:${d === 0 ? 2 : 1.5}px solid ${m.color};animation:vbP 2s ease-out infinite ${d * 0.7}s;opacity:${d === 0 ? 0.35 : 0.18};pointer-events:none;`;
         el.appendChild(ring);
       }
     }
+
+    // Outer glow ring (always visible, stronger when active)
+    const glow = document.createElement("div");
+    glow.style.cssText = `
+      position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+      width:${sz + 8}px;height:${sz + 8}px;border-radius:50%;
+      background:radial-gradient(circle, ${isActive ? m.color + '30' : 'rgba(255,255,255,0.06)'} 0%, transparent 70%);
+      pointer-events:none;transition:all 0.7s ease;
+    `;
+    el.appendChild(glow);
 
     // Main circle with icon
     const circle = document.createElement("div");
     circle.style.cssText = `
       position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-      width:${sz}px;height:${sz}px;border-radius:50%;background:#111;
-      border:${isActive ? `3px solid ${m.color}` : `2px solid ${C.muted}`};
+      width:${sz}px;height:${sz}px;border-radius:50%;
+      background:${isActive ? '#0a0a0a' : '#151515'};
+      border:${isActive ? `2.5px solid ${m.color}` : `1.5px solid rgba(255,255,255,0.2)`};
       display:flex;align-items:center;justify-content:center;overflow:hidden;
-      box-shadow:${isActive ? `0 0 28px ${m.color}55,0 0 56px ${m.color}22` : "none"};
+      box-shadow:${isActive ? `0 0 20px ${m.color}44, 0 0 60px ${m.color}18` : '0 2px 8px rgba(0,0,0,0.5)'};
       transition:all 0.7s cubic-bezier(0.23,1,0.32,1);
     `;
 
+    // The icons are white-on-black PNGs. mix-blend-mode:screen makes
+    // the black transparent, leaving only the white line art visible.
     const img = document.createElement("img");
     img.src = iconSrc;
     img.alt = "";
     img.width = iconSz;
     img.height = iconSz;
-    img.style.cssText = `display:block;object-fit:contain;opacity:${isActive ? 1 : 0.45};transition:all 0.7s ease;`;
+    img.style.cssText = `
+      display:block;object-fit:contain;
+      mix-blend-mode:screen;
+      opacity:${isActive ? 1 : 0.55};
+      transition:all 0.7s ease;
+      filter:${isActive ? `drop-shadow(0 0 4px ${m.color}60)` : 'none'};
+    `;
     circle.appendChild(img);
     el.appendChild(circle);
 
