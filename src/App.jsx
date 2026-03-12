@@ -1,0 +1,593 @@
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import mapboxgl from "mapbox-gl";
+
+// ════════════════════════════════════════════════════════
+// MAPBOX TOKEN — reads from env var at build time
+// ════════════════════════════════════════════════════════
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
+
+// ════════════════════════════════════════════════════════
+// DESIGN TOKENS
+// ════════════════════════════════════════════════════════
+const C = {
+  bg: "#080e16",
+  camera: "#FF585F", radio: "#E8FB56", voice: "#507FE5",
+  cad: "#ACCDF6", dispatch: "#8E52E8", drone: "#4ECDC4",
+  accent: "#60A6FB", danger: "#DD4452", dangerBg: "#3c070d",
+  white: "#fff", muted: "#5a5e65",
+  glass: "rgba(0,0,0,0.72)", glassBorder: "rgba(255,255,255,0.2)",
+};
+
+// ════════════════════════════════════════════════════════
+// SVG ICONS
+// ════════════════════════════════════════════════════════
+const CameraIcon = ({ size = 20, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 60 60" fill="none">
+    <path d="M14 42h32a3 3 0 003-3V22a3 3 0 00-3-3h-7l-3-5H24l-3 5h-7a3 3 0 00-3 3v17a3 3 0 003 3z" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <circle cx="30" cy="30" r="7" stroke={color} strokeWidth="2.5"/>
+  </svg>
+);
+const RadioIcon = ({ size = 20, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 60 60" fill="none">
+    <rect x="20" y="10" width="20" height="40" rx="3" stroke={color} strokeWidth="2.5"/>
+    <rect x="24" y="28" width="12" height="8" rx="1.5" stroke={color} strokeWidth="2"/>
+    <line x1="30" y1="10" x2="38" y2="3" stroke={color} strokeWidth="2" strokeLinecap="round"/>
+    <circle cx="27" cy="42" r="1.5" fill={color}/><circle cx="33" cy="42" r="1.5" fill={color}/>
+  </svg>
+);
+const VoiceIcon = ({ size = 20, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 60 60" fill="none">
+    {[12,15.6,19.2,22.8,26.4,30,33.6,37.2,40.8,44.4,48].map((x,i) => {
+      const heights = [3.6,10.8,14.4,10.8,7.8,3.6,7.8,3.6,1.8,3.6,0.4];
+      const h = heights[i], cy = 30;
+      return <path key={i} d={`M${x} ${cy+h/2}V${cy-h/2}`} stroke={color} strokeWidth="1.8" strokeLinecap="round"/>;
+    })}
+  </svg>
+);
+const DroneIcon = ({ size = 20, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 60 60" fill="none">
+    <circle cx="30" cy="30" r="5" stroke={color} strokeWidth="2.2"/>
+    <line x1="22" y1="22" x2="14" y2="14" stroke={color} strokeWidth="2" strokeLinecap="round"/>
+    <line x1="38" y1="22" x2="46" y2="14" stroke={color} strokeWidth="2" strokeLinecap="round"/>
+    <line x1="22" y1="38" x2="14" y2="46" stroke={color} strokeWidth="2" strokeLinecap="round"/>
+    <line x1="38" y1="38" x2="46" y2="46" stroke={color} strokeWidth="2" strokeLinecap="round"/>
+    <circle cx="12" cy="12" r="4" stroke={color} strokeWidth="1.8"/>
+    <circle cx="48" cy="12" r="4" stroke={color} strokeWidth="1.8"/>
+    <circle cx="12" cy="48" r="4" stroke={color} strokeWidth="1.8"/>
+    <circle cx="48" cy="48" r="4" stroke={color} strokeWidth="1.8"/>
+  </svg>
+);
+const CadIcon = ({ size = 20, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 60 60" fill="none">
+    <rect x="8" y="12" width="44" height="28" rx="3" stroke={color} strokeWidth="2.5"/>
+    <path d="M22 46h16M30 40v6" stroke={color} strokeWidth="2.5" strokeLinecap="round"/>
+    <circle cx="30" cy="26" r="4" stroke={color} strokeWidth="1.5"/>
+  </svg>
+);
+const DispatchIcon = ({ size = 20, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 60 60" fill="none">
+    <path d="M50 40.92v6a4 4 0 01-4.36 4A39.58 39.58 0 0128.4 44.78a39 39 0 01-12-12A39.58 39.58 0 0110.26 15.36 4 4 0 0114.22 11h6a4 4 0 014 3.44c.254 1.92.722 3.806 1.4 5.62a4 4 0 01-.9 4.22L22.18 26.82a32 32 0 0012 12l2.54-2.54a4 4 0 014.22-.9 25.68 25.68 0 005.62 1.4A4 4 0 0150 40.92z" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+const ICON_MAP = { camera: CameraIcon, radio: RadioIcon, voice: VoiceIcon, drone: DroneIcon, cad: CadIcon, dispatch: DispatchIcon };
+
+// ════════════════════════════════════════════════════════
+// SENSORS — real lat/lng around SF Mission/SoMa area
+// ════════════════════════════════════════════════════════
+const MAP_CENTER = [-122.415, 37.775]; // SF
+const MAP_ZOOM = 14.5;
+
+const SENSORS = [
+  { id:"cam1",  type:"camera", lng:-122.422, lat:37.782 },
+  { id:"cam2",  type:"camera", lng:-122.411, lat:37.781 },
+  { id:"cam3",  type:"camera", lng:-122.405, lat:37.776 },
+  { id:"cam4",  type:"camera", lng:-122.405, lat:37.769 },
+  { id:"cam5",  type:"camera", lng:-122.410, lat:37.766 },
+  { id:"cam6",  type:"camera", lng:-122.413, lat:37.778 },
+  { id:"rad1",  type:"radio",  lng:-122.415, lat:37.782 },
+  { id:"rad2",  type:"radio",  lng:-122.406, lat:37.767 },
+  { id:"rad3",  type:"radio",  lng:-122.409, lat:37.776 },
+  { id:"drone1",type:"drone",  lng:-122.406, lat:37.774 },
+  { id:"voice1",type:"voice",  lng:-122.411, lat:37.771 },
+  { id:"cad1",  type:"cad",    lng:-122.417, lat:37.776 },
+];
+
+const SM = {
+  camera:{color:C.camera,label:"Camera"},radio:{color:C.radio,label:"Radio"},
+  voice:{color:C.voice,label:"Voice"},drone:{color:C.drone,label:"Drone"},cad:{color:C.cad,label:"CAD"},
+};
+
+// ════════════════════════════════════════════════════════
+// STEPS — each one defines map fly-to params
+// ════════════════════════════════════════════════════════
+const STEPS = [
+  { id:0, phase:"intro",    headline:"The Dispatcher's Second Brain", sub:"Six radio channels. Four 911 calls holding. A critical detail just got buried.", time:null, center:MAP_CENTER, zoom:MAP_ZOOM, bearing:0, pitch:0, activate:[], connect:[], icon:"dispatch" },
+  { id:1, phase:"dispatch",  headline:"911 Call Received", sub:"Shots fired reported near Canal & Norman. The clock starts now.", time:"17:43:02", center:[-122.414, 37.777], zoom:15, bearing:10, pitch:30, activate:[], connect:[], icon:"dispatch" },
+  { id:2, phase:"voice",     headline:"Radio Transcription", sub:"VoiceBrain captures every word across all channels — transcribed and structured in real time.", time:"17:43:05", center:[-122.413, 37.777], zoom:15.5, bearing:15, pitch:40, activate:["rad3","cad1"], connect:[["rad3","cad1"]], icon:"voice" },
+  { id:3, phase:"camera",    headline:"Camera Correlation", sub:"AI automatically correlates the radio call with the nearest camera feed. Suspect vehicle identified.", time:"17:43:08", center:[-122.412, 37.778], zoom:16, bearing:20, pitch:45, activate:["cam6"], connect:[["cam6","rad3"],["cam6","cad1"]], icon:"camera" },
+  { id:4, phase:"alert",     headline:"KODI Alert Triggered", sub:"Suspect armed. Officer on scene in distress. Command notified instantly.", time:"17:43:12", center:[-122.411, 37.777], zoom:15.8, bearing:15, pitch:40, activate:[], connect:[], icon:"dispatch" },
+  { id:5, phase:"response",  headline:"Multi-District Response", sub:"Three districts responding. Pursuit crosses city lines. Everyone sees the same picture.", time:"17:43:15", center:[-122.412, 37.775], zoom:15.2, bearing:5, pitch:30, activate:["voice1"], connect:[["voice1","rad3"],["voice1","cam6"]], icon:"voice" },
+  { id:6, phase:"drone",     headline:"Drone Dispatched", sub:"Aerial unit en route with live video feed. ETA 90 seconds.", time:"17:43:18", center:[-122.408, 37.774], zoom:15.5, bearing:-10, pitch:50, activate:["drone1"], connect:[["drone1","cam6"],["drone1","voice1"]], icon:"drone" },
+  { id:7, phase:"result",    headline:"Complete Operational Picture", sub:"20 seconds. Voice, video, CAD — correlated. Information comes to the dispatcher.", time:"17:43:22", center:MAP_CENTER, zoom:MAP_ZOOM, bearing:0, pitch:0, activate:[], connect:[], icon:"cad" },
+];
+
+const typeColor = t => t==="dispatch"||t==="alert"?C.dispatch:t==="voice"||t==="response"?C.voice:t==="camera"?C.camera:t==="drone"?C.drone:C.accent;
+
+// ════════════════════════════════════════════════════════
+// MAPBOX MAP COMPONENT
+// ════════════════════════════════════════════════════════
+function MapboxMap({ mapRef, mapContainerRef }) {
+  useEffect(() => {
+    if (mapRef.current) return; // already initialized
+
+    const map = new mapboxgl.Map({
+      container: mapContainerRef.current,
+      style: "mapbox://styles/mapbox/dark-v11",
+      center: MAP_CENTER,
+      zoom: MAP_ZOOM,
+      bearing: 0,
+      pitch: 0,
+      interactive: false, // we control movement via steps
+      attributionControl: false,
+    });
+
+    map.on("load", () => {
+      mapRef.current = map;
+    });
+
+    // Fallback if load fires before ref assignment
+    mapRef.current = map;
+
+    return () => map.remove();
+  }, []);
+
+  return (
+    <div
+      ref={mapContainerRef}
+      style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+    />
+  );
+}
+
+// ════════════════════════════════════════════════════════
+// SENSOR MARKER (HTML overlay positioned via Mapbox)
+// ════════════════════════════════════════════════════════
+function SensorMarker({ sensor, isActive, map }) {
+  const markerRef = useRef(null);
+  const elRef = useRef(null);
+  const m = SM[sensor.type];
+  const Ic = ICON_MAP[sensor.type];
+
+  useEffect(() => {
+    if (!map) return;
+
+    const el = document.createElement("div");
+    el.className = "vb-marker";
+    elRef.current = el;
+
+    const marker = new mapboxgl.Marker({ element: el, anchor: "center" })
+      .setLngLat([sensor.lng, sensor.lat])
+      .addTo(map);
+
+    markerRef.current = marker;
+
+    return () => marker.remove();
+  }, [map, sensor.lng, sensor.lat]);
+
+  // Update marker appearance when active state changes
+  useEffect(() => {
+    const el = elRef.current;
+    if (!el) return;
+
+    const sz = isActive ? 54 : 28;
+    const innerSz = isActive ? 34 : 20;
+
+    el.style.width = `${sz}px`;
+    el.style.height = `${sz}px`;
+    el.style.transition = "all 0.7s cubic-bezier(0.23,1,0.32,1)";
+    el.style.position = "relative";
+
+    el.innerHTML = "";
+
+    // Pulse rings
+    if (isActive) {
+      for (let d = 0; d < 2; d++) {
+        const ring = document.createElement("div");
+        ring.style.cssText = `position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:88px;height:88px;border-radius:50%;border:${d===0?2:1.5}px solid ${m.color};animation:vbP 2s ease-out infinite ${d*0.7}s;opacity:${d===0?0.3:0.15};pointer-events:none;`;
+        el.appendChild(ring);
+      }
+    }
+
+    // Main circle
+    const circle = document.createElement("div");
+    circle.style.cssText = `position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:${sz}px;height:${sz}px;border-radius:50%;background:${isActive?m.color:"#111"};border:${isActive?"none":`2px solid ${C.muted}`};display:flex;align-items:center;justify-content:center;box-shadow:${isActive?`0 0 28px ${m.color}55, 0 0 56px ${m.color}22`:"none"};transition:all 0.7s cubic-bezier(0.23,1,0.32,1);`;
+
+    const inner = document.createElement("div");
+    inner.style.cssText = `width:${innerSz}px;height:${innerSz}px;border-radius:50%;background:${isActive?"rgba(17,17,17,0.8)":"transparent"};display:flex;align-items:center;justify-content:center;color:${isActive?m.color:C.muted};`;
+
+    // Simple icon placeholder (we can't easily render React SVG into DOM markers)
+    const icon = document.createElement("div");
+    icon.style.cssText = `width:${isActive?16:10}px;height:${isActive?16:10}px;border-radius:50%;background:${isActive?m.color:C.muted};opacity:0.8;`;
+    inner.appendChild(icon);
+    circle.appendChild(inner);
+    el.appendChild(circle);
+
+    // Label
+    if (isActive) {
+      const label = document.createElement("div");
+      label.textContent = m.label;
+      label.style.cssText = `position:absolute;left:50%;top:100%;transform:translate(-50%,8px);font-size:8px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:${m.color};text-shadow:0 0 10px ${m.color}50;white-space:nowrap;font-family:-apple-system,sans-serif;`;
+      el.appendChild(label);
+    }
+  }, [isActive, m]);
+
+  return null; // rendered via Mapbox markers, not React DOM
+}
+
+// ════════════════════════════════════════════════════════
+// CONNECTION LINES (SVG overlay)
+// ════════════════════════════════════════════════════════
+function ConnectionLines({ connections, map }) {
+  const [points, setPoints] = useState([]);
+
+  useEffect(() => {
+    if (!map) return;
+    const update = () => {
+      const pts = connections.map(([fromId, toId]) => {
+        const from = SENSORS.find(s => s.id === fromId);
+        const to = SENSORS.find(s => s.id === toId);
+        if (!from || !to) return null;
+        const p1 = map.project([from.lng, from.lat]);
+        const p2 = map.project([to.lng, to.lat]);
+        return { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, key: `${fromId}-${toId}` };
+      }).filter(Boolean);
+      setPoints(pts);
+    };
+    update();
+    map.on("move", update);
+    map.on("zoom", update);
+    return () => { map.off("move", update); map.off("zoom", update); };
+  }, [connections, map]);
+
+  if (!points.length) return null;
+
+  return (
+    <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", zIndex: 6, pointerEvents: "none" }}>
+      <defs>
+        <filter id="glow"><feGaussianBlur stdDeviation="4" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+      </defs>
+      {points.map((p, i) => (
+        <g key={p.key}>
+          <line x1={p.x1} y1={p.y1} x2={p.x2} y2={p.y2} stroke={C.accent} strokeWidth="5" strokeOpacity="0.12" filter="url(#glow)" className="vb-linein" style={{ animationDelay: `${i * 0.12}s` }} />
+          <line x1={p.x1} y1={p.y1} x2={p.x2} y2={p.y2} stroke={C.accent} strokeWidth="1.5" strokeDasharray="8 6" className="vb-linein vb-dash-move" style={{ animationDelay: `${i * 0.12}s` }} />
+          <circle r="3.5" fill={C.white} opacity="0.85" filter="url(#glow)">
+            <animateMotion dur={`${1.8 + i * 0.3}s`} repeatCount="indefinite" path={`M${p.x1},${p.y1} L${p.x2},${p.y2}`} keyPoints="0;1" keyTimes="0;1" calcMode="linear" />
+          </circle>
+          <circle r="2.5" fill={C.accent} opacity="0.5">
+            <animateMotion dur={`${1.8 + i * 0.3}s`} repeatCount="indefinite" begin={`${0.9 + i * 0.15}s`} path={`M${p.x1},${p.y1} L${p.x2},${p.y2}`} keyPoints="0;1" keyTimes="0;1" calcMode="linear" />
+          </circle>
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+// ════════════════════════════════════════════════════════
+// POSITIONED OVERLAY — converts lng/lat to screen pixels
+// ════════════════════════════════════════════════════════
+function MapOverlay({ lng, lat, map, children, style }) {
+  const [pos, setPos] = useState(null);
+
+  useEffect(() => {
+    if (!map) return;
+    const update = () => {
+      const p = map.project([lng, lat]);
+      setPos({ x: p.x, y: p.y });
+    };
+    update();
+    map.on("move", update);
+    map.on("zoom", update);
+    return () => { map.off("move", update); map.off("zoom", update); };
+  }, [map, lng, lat]);
+
+  if (!pos) return null;
+
+  return (
+    <div style={{ position: "absolute", left: pos.x, top: pos.y, ...style }}>
+      {children}
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════
+// MAIN APP
+// ════════════════════════════════════════════════════════
+export default function App() {
+  const mapRef = useRef(null);
+  const mapContainerRef = useRef(null);
+  const [mapReady, setMapReady] = useState(false);
+  const [step, setStep] = useState(0);
+  const progressRef = useRef(0);
+  const containerRef = useRef(null);
+  const lastStepRef = useRef(0);
+
+  // Wait for map
+  useEffect(() => {
+    const check = setInterval(() => {
+      if (mapRef.current && mapRef.current.loaded()) {
+        setMapReady(true);
+        clearInterval(check);
+      }
+    }, 100);
+    return () => clearInterval(check);
+  }, []);
+
+  // Fly map to step position
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+    const s = STEPS[step];
+    map.flyTo({
+      center: s.center,
+      zoom: s.zoom,
+      bearing: s.bearing,
+      pitch: s.pitch,
+      duration: 1500,
+      essential: true,
+    });
+    lastStepRef.current = step;
+  }, [step, mapReady]);
+
+  // Wheel-driven navigation
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const SENSITIVITY = 0.0008;
+    const handleWheel = (e) => {
+      e.preventDefault();
+      progressRef.current = Math.max(0, Math.min(1, progressRef.current + e.deltaY * SENSITIVITY));
+      const newStep = Math.round(progressRef.current * (STEPS.length - 1));
+      setStep(prev => prev !== newStep ? newStep : prev);
+    };
+    let touchStartY = 0;
+    const handleTouchStart = (e) => { touchStartY = e.touches[0].clientY; };
+    const handleTouchMove = (e) => {
+      e.preventDefault();
+      const delta = (touchStartY - e.touches[0].clientY) * 0.003;
+      touchStartY = e.touches[0].clientY;
+      progressRef.current = Math.max(0, Math.min(1, progressRef.current + delta));
+      const newStep = Math.round(progressRef.current * (STEPS.length - 1));
+      setStep(prev => prev !== newStep ? newStep : prev);
+    };
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    el.addEventListener("touchstart", handleTouchStart, { passive: true });
+    el.addEventListener("touchmove", handleTouchMove, { passive: false });
+    return () => {
+      el.removeEventListener("wheel", handleWheel);
+      el.removeEventListener("touchstart", handleTouchStart);
+      el.removeEventListener("touchmove", handleTouchMove);
+    };
+  }, []);
+
+  const goToStep = useCallback((i) => {
+    progressRef.current = i / (STEPS.length - 1);
+    setStep(i);
+  }, []);
+
+  // Cumulative state
+  const state = useMemo(() => {
+    const active = new Set(), conns = [];
+    for (let i = 0; i <= step; i++) {
+      STEPS[i].activate.forEach(id => active.add(id));
+      STEPS[i].connect.forEach(c => {
+        if (!conns.some(e => e[0] === c[0] && e[1] === c[1])) conns.push(c);
+      });
+    }
+    return { active, conns };
+  }, [step]);
+
+  const cur = STEPS[step];
+  const { active, conns } = state;
+  const isResult = cur.phase === "result";
+
+  return (
+    <div ref={containerRef} style={{ position: "relative", width: "100%", height: "100vh", overflow: "hidden", background: C.bg, fontFamily: "'SF Pro Display','SF Pro Text',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif", color: C.white, display: "flex", touchAction: "none" }}>
+      <style>{`
+        @keyframes vbP{0%{transform:translate(-50%,-50%) scale(1);opacity:.3}100%{transform:translate(-50%,-50%) scale(3);opacity:0}}
+        .vb-linein{animation:vbLI .8s ease both}
+        @keyframes vbLI{from{opacity:0;stroke-dashoffset:40}to{opacity:1;stroke-dashoffset:0}}
+        .vb-dash-move{animation:vbLI .8s ease both, vbDM 2s linear infinite}
+        @keyframes vbDM{from{stroke-dashoffset:28}to{stroke-dashoffset:0}}
+        @keyframes vbGlow{0%,100%{opacity:.6}50%{opacity:1}}
+        @keyframes vbBP{0%,100%{box-shadow:0 0 0 0 rgba(221,68,82,.4),inset 0 0 30px rgba(221,68,82,.05)}50%{box-shadow:0 0 0 10px rgba(221,68,82,0),inset 0 0 50px rgba(221,68,82,.12)}}
+        @keyframes vbShake{0%,100%{transform:translate(-50%,-100%) scale(1)}10%{transform:translate(calc(-50% - 3px),-100%)}30%{transform:translate(calc(-50% + 3px),-100%)}50%{transform:translate(-50%,-100%) scale(1.02)}70%{transform:translate(calc(-50% + 1px),-100%)}}
+        @keyframes vbSlide{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+        .mapboxgl-canvas{outline:none}
+      `}</style>
+
+      {/* ═══════ LEFT: FIXED TIMELINE TOC ═══════ */}
+      <div style={{ width: 300, minWidth: 300, height: "100%", display: "flex", flexDirection: "column", zIndex: 20, background: "rgba(8,14,22,0.97)", borderRight: "1px solid rgba(255,255,255,0.06)" }}>
+        <div style={{ padding: "24px 24px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+          <div style={{ fontSize: 9, letterSpacing: 4, color: C.accent, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>VoiceBrain AI</div>
+          <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: -0.5, lineHeight: 1.25 }}>Command & Dispatch<br />Operations</div>
+        </div>
+        <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
+          {STEPS.map((s, i) => {
+            const isActive = step === i, isPast = step > i;
+            const color = typeColor(s.phase);
+            const Ic = ICON_MAP[s.icon];
+            return (
+              <div key={s.id} onClick={() => goToStep(i)} style={{
+                display: "flex", alignItems: "flex-start", gap: 12, padding: "11px 20px", cursor: "pointer",
+                background: isActive ? "rgba(96,166,251,0.06)" : "transparent",
+                borderLeft: isActive ? `3px solid ${color}` : "3px solid transparent",
+                transition: "all 0.4s ease",
+                opacity: isActive ? 1 : isPast ? 0.4 : 0.2,
+              }}>
+                <div style={{
+                  width: 26, height: 26, borderRadius: "50%", flexShrink: 0, marginTop: 1,
+                  background: isActive ? color : isPast ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.04)",
+                  display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.4s ease",
+                  boxShadow: isActive ? `0 0 14px ${color}50` : "none",
+                }}>
+                  <Ic size={13} color={isActive ? "#111" : isPast ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.12)"} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {s.time && <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: 1.5, color: isActive ? color : "rgba(255,255,255,0.25)", fontVariantNumeric: "tabular-nums", marginBottom: 1, transition: "color 0.4s ease" }}>{s.time}</div>}
+                  <div style={{ fontSize: 11, fontWeight: isActive ? 700 : 500, color: isActive ? C.white : "rgba(255,255,255,0.45)", transition: "all 0.4s ease", lineHeight: 1.3 }}>{s.headline}</div>
+                  {isActive && <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", lineHeight: 1.4, marginTop: 4 }}>{s.sub}</div>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ padding: "16px 20px", borderTop: "1px solid rgba(255,255,255,0.06)", minHeight: 70 }}>
+          {step === 0 && <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+            <div style={{ fontSize: 9, letterSpacing: 2, color: C.danger, fontWeight: 600, textTransform: "uppercase", marginBottom: 2 }}>Pain Points</div>
+            {["No real-time radio transcription", "Manual correlation of audio, video, sensors", "Critical details lost in noise"].map((p, j) => (
+              <div key={j} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 10, color: "rgba(255,255,255,0.4)" }}><span style={{ color: C.danger, fontSize: 7 }}>●</span>{p}</div>
+            ))}
+          </div>}
+          {step === 7 && <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+            <div style={{ fontSize: 9, letterSpacing: 2, color: C.accent, fontWeight: 600, textTransform: "uppercase", marginBottom: 2 }}>Results</div>
+            {["Complete visibility", "Faster response", "Safer officers"].map((r, j) => (
+              <div key={j} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 10, color: "rgba(255,255,255,0.5)" }}><span style={{ color: C.accent, fontWeight: 700 }}>✓</span>{r}</div>
+            ))}
+          </div>}
+          {step > 0 && step < 7 && <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+            {Object.entries(SM).map(([k, v]) => (
+              <div key={k} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 8, color: "rgba(255,255,255,0.25)", letterSpacing: 0.5 }}>
+                <div style={{ width: 5, height: 5, borderRadius: "50%", background: v.color }} />{v.label}
+              </div>
+            ))}
+          </div>}
+        </div>
+      </div>
+
+      {/* ═══════ RIGHT: MAP ═══════ */}
+      <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+        <MapboxMap mapRef={mapRef} mapContainerRef={mapContainerRef} />
+
+        {/* Sensor markers */}
+        {mapReady && SENSORS.map(s => (
+          <SensorMarker key={s.id} sensor={s} isActive={active.has(s.id)} map={mapRef.current} />
+        ))}
+
+        {/* Connection lines */}
+        {mapReady && <ConnectionLines connections={conns} map={mapRef.current} />}
+
+        {/* ── SHOTS FIRED CALLOUT ── */}
+        {mapReady && step >= 1 && step < 7 && (
+          <MapOverlay lng={-122.414} lat={37.779} map={mapRef.current} style={{
+            transform: "translate(-50%,-100%)",
+            zIndex: 22, pointerEvents: "none",
+            animation: "vbShake 0.6s ease 0.2s both",
+          }}>
+            <div style={{
+              display: "flex", alignItems: "center", gap: 16, padding: "14px 24px", borderRadius: 50,
+              background: "rgba(0,0,0,0.85)", border: `2px solid ${C.danger}`,
+              backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
+              animation: "vbBP 2s ease infinite", whiteSpace: "nowrap",
+            }}>
+              <div style={{ width: 44, height: 44, borderRadius: "50%", background: C.dispatch, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#111", display: "flex", alignItems: "center", justifyContent: "center" }}><DispatchIcon size={20} color={C.dispatch} /></div>
+              </div>
+              <div>
+                <div style={{ fontSize: 9, color: C.danger, fontWeight: 700, letterSpacing: 2.5, textTransform: "uppercase", marginBottom: 2 }}>● Active Incident</div>
+                <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: -0.5, lineHeight: 1.1 }}>Shots Fired — 5:43 PM</div>
+                <div style={{ display: "flex", gap: 6, marginTop: 5 }}>
+                  <span style={{ padding: "2px 12px", borderRadius: 40, background: C.dangerBg, color: C.danger, fontSize: 9, fontWeight: 600 }}>Assault</span>
+                  <span style={{ padding: "2px 12px", borderRadius: 40, background: "rgba(96,166,251,0.12)", color: C.accent, fontSize: 9, fontWeight: 500 }}>Canal & Norman</span>
+                </div>
+              </div>
+            </div>
+          </MapOverlay>
+        )}
+
+        {/* ── Voice transcription ── */}
+        {mapReady && step >= 2 && step < 7 && (
+          <MapOverlay lng={-122.420} lat={37.774} map={mapRef.current} style={{
+            transform: "translate(-50%,-50%)", zIndex: 15, pointerEvents: "none",
+            transition: "opacity 0.8s ease", opacity: 1,
+          }}>
+            <div style={{
+              display: "flex", alignItems: "center", gap: 14, padding: "12px 20px", borderRadius: 40,
+              background: C.glass, border: `1px solid ${C.glassBorder}`,
+              backdropFilter: "blur(24px)", whiteSpace: "nowrap",
+            }}>
+              <div style={{ width: 40, height: 40, borderRadius: "50%", background: C.voice, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#111", display: "flex", alignItems: "center", justifyContent: "center" }}><VoiceIcon size={18} color={C.voice} /></div>
+              </div>
+              <div>
+                <div style={{ fontSize: 10, color: C.accent, fontWeight: 600, letterSpacing: 1 }}>Voice Capture</div>
+                <span style={{ fontSize: 15, fontWeight: 700 }}><span style={{ color: C.radio }}>"</span>Shots fired bear Canal and Norman<span style={{ color: C.radio }}>"</span></span>
+              </div>
+            </div>
+          </MapOverlay>
+        )}
+
+        {/* ── KODI Alert ── */}
+        {mapReady && step >= 4 && step < 7 && (
+          <MapOverlay lng={-122.404} lat={37.780} map={mapRef.current} style={{
+            transform: "translate(-50%,-50%)", zIndex: 25, pointerEvents: "none",
+          }}>
+            <div style={{
+              width: 230, borderRadius: 14, background: "rgba(30,30,30,0.9)",
+              border: `2px solid rgba(221,68,82,0.5)`, backdropFilter: "blur(35px)",
+              textAlign: "center", overflow: "hidden",
+              boxShadow: `0 0 40px rgba(221,68,82,0.15),0 16px 48px rgba(0,0,0,0.5)`,
+            }}>
+              <div style={{ padding: "14px 14px 4px", fontSize: 14, fontWeight: 700, color: C.danger }}>⚠ KODI Alert</div>
+              <div style={{ padding: "0 14px 12px", fontSize: 11, color: "rgba(255,255,255,0.88)", lineHeight: 1.45 }}>Suspect armed. Officer on scene in distress.</div>
+              <div style={{ display: "flex", borderTop: "1px solid rgba(84,84,88,0.65)" }}>
+                <div style={{ flex: 1, padding: "9px 0", fontSize: 13, color: "#0A84FF", textAlign: "center" }}>Delete</div>
+                <div style={{ width: 1, background: "rgba(84,84,88,0.65)" }} />
+                <div style={{ flex: 1, padding: "9px 0", fontSize: 13, color: "#0A84FF", fontWeight: 600, textAlign: "center" }}>Open</div>
+              </div>
+            </div>
+          </MapOverlay>
+        )}
+
+        {/* LIVE badge */}
+        {step > 0 && step < STEPS.length - 1 && (
+          <div style={{ position: "absolute", top: 18, right: 20, zIndex: 30, display: "flex", alignItems: "center", gap: 8, padding: "5px 14px", borderRadius: 20, background: "rgba(221,68,82,0.12)", border: "1px solid rgba(221,68,82,0.25)" }}>
+            <div style={{ width: 6, height: 6, borderRadius: "50%", background: C.danger, animation: "vbGlow 1.5s ease infinite" }} />
+            <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: 2, color: C.danger }}>LIVE</span>
+          </div>
+        )}
+
+        {/* Result overlay */}
+        {isResult && (
+          <div style={{ position: "absolute", inset: 0, background: "rgba(8,14,22,0.88)", backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 40, animation: "vbSlide 0.8s ease both" }}>
+            <div style={{ textAlign: "center", maxWidth: 480, padding: "0 32px" }}>
+              <div style={{ fontSize: 10, letterSpacing: 4, color: C.accent, fontWeight: 600, textTransform: "uppercase", marginBottom: 12 }}>The Result</div>
+              <div style={{ fontSize: 32, fontWeight: 700, letterSpacing: -1.2, marginBottom: 14, background: `linear-gradient(135deg,${C.white},${C.accent})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", lineHeight: 1.15 }}>Complete Operational Picture</div>
+              <div style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", lineHeight: 1.6, marginBottom: 36 }}>Every radio transmission — transcribed, searchable, correlated with video and CAD in real time.</div>
+              <div style={{ display: "flex", gap: 40, justifyContent: "center", marginBottom: 32 }}>
+                {[{ v: "6", l: "Radio Channels", c: C.voice }, { v: "20s", l: "Time to Picture", c: C.camera }, { v: "0", l: "Details Lost", c: C.radio }].map((s, j) => (
+                  <div key={j}><div style={{ fontSize: 38, fontWeight: 700, letterSpacing: -2, color: s.c }}>{s.v}</div><div style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", letterSpacing: 1.5, textTransform: "uppercase", marginTop: 2 }}>{s.l}</div></div>
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: 24, justifyContent: "center" }}>
+                {["Complete visibility", "Faster response", "Safer officers"].map((r, j) => (
+                  <div key={j} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "rgba(255,255,255,0.6)" }}><span style={{ color: C.accent, fontWeight: 700 }}>✓</span>{r}</div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Progress bar */}
+        <div style={{ position: "absolute", bottom: 0, left: 0, height: 2, zIndex: 50, width: `${(step / (STEPS.length - 1)) * 100}%`, background: `linear-gradient(90deg,${C.voice},${C.accent},${C.camera})`, transition: "width 0.5s ease" }} />
+
+        {/* Scroll hint */}
+        {step === 0 && (
+          <div style={{ position: "absolute", bottom: 32, left: "50%", transform: "translateX(-50%)", zIndex: 35, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, animation: "vbGlow 2s ease infinite", pointerEvents: "none" }}>
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", letterSpacing: 2 }}>SCROLL TO EXPLORE</div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2"><path d="M12 5v14M19 12l-7 7-7-7" /></svg>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
