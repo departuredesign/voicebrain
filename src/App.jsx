@@ -35,8 +35,8 @@ const RadioIcon = ({ size = 20, color = "currentColor" }) => (
 const VoiceIcon = ({ size = 20, color = "currentColor" }) => (
   <svg width={size} height={size} viewBox="0 0 60 60" fill="none">
     {[12,15.6,19.2,22.8,26.4,30,33.6,37.2,40.8,44.4,48].map((x,i) => {
-      const heights = [3.6,10.8,14.4,10.8,7.8,3.6,7.8,3.6,1.8,3.6,0.4];
-      return <path key={i} d={`M${x} ${30+heights[i]/2}V${30-heights[i]/2}`} stroke={color} strokeWidth="1.8" strokeLinecap="round"/>;
+      const h = [3.6,10.8,14.4,10.8,7.8,3.6,7.8,3.6,1.8,3.6,0.4][i];
+      return <path key={i} d={`M${x} ${30+h/2}V${30-h/2}`} stroke={color} strokeWidth="1.8" strokeLinecap="round"/>;
     })}
   </svg>
 );
@@ -47,10 +47,8 @@ const DroneIcon = ({ size = 20, color = "currentColor" }) => (
     <line x1="38" y1="22" x2="46" y2="14" stroke={color} strokeWidth="2" strokeLinecap="round"/>
     <line x1="22" y1="38" x2="14" y2="46" stroke={color} strokeWidth="2" strokeLinecap="round"/>
     <line x1="38" y1="38" x2="46" y2="46" stroke={color} strokeWidth="2" strokeLinecap="round"/>
-    <circle cx="12" cy="12" r="4" stroke={color} strokeWidth="1.8"/>
-    <circle cx="48" cy="12" r="4" stroke={color} strokeWidth="1.8"/>
-    <circle cx="12" cy="48" r="4" stroke={color} strokeWidth="1.8"/>
-    <circle cx="48" cy="48" r="4" stroke={color} strokeWidth="1.8"/>
+    <circle cx="12" cy="12" r="4" stroke={color} strokeWidth="1.8"/><circle cx="48" cy="12" r="4" stroke={color} strokeWidth="1.8"/>
+    <circle cx="12" cy="48" r="4" stroke={color} strokeWidth="1.8"/><circle cx="48" cy="48" r="4" stroke={color} strokeWidth="1.8"/>
   </svg>
 );
 const CadIcon = ({ size = 20, color = "currentColor" }) => (
@@ -67,9 +65,7 @@ const DispatchIcon = ({ size = 20, color = "currentColor" }) => (
 );
 const ICON_MAP = { camera: CameraIcon, radio: RadioIcon, voice: VoiceIcon, drone: DroneIcon, cad: CadIcon, dispatch: DispatchIcon };
 
-// ════════════════════════════════════════════════════════
 // SVG strings for DOM marker injection
-// ════════════════════════════════════════════════════════
 const ICON_SVG = {
   camera: (c) => `<svg width="18" height="18" viewBox="0 0 60 60" fill="none"><path d="M14 42h32a3 3 0 003-3V22a3 3 0 00-3-3h-7l-3-5H24l-3 5h-7a3 3 0 00-3 3v17a3 3 0 003 3z" stroke="${c}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="30" cy="30" r="7" stroke="${c}" stroke-width="3"/></svg>`,
   radio: (c) => `<svg width="18" height="18" viewBox="0 0 60 60" fill="none"><rect x="20" y="10" width="20" height="40" rx="3" stroke="${c}" stroke-width="3"/><rect x="24" y="28" width="12" height="8" rx="1.5" stroke="${c}" stroke-width="2.5"/><line x1="30" y1="10" x2="38" y2="3" stroke="${c}" stroke-width="2.5" stroke-linecap="round"/></svg>`,
@@ -79,24 +75,24 @@ const ICON_SVG = {
 };
 
 // ════════════════════════════════════════════════════════
-// SENSORS
+// SENSORS — spread out more naturally around SF SoMa
 // ════════════════════════════════════════════════════════
-const MAP_CENTER = [-122.415, 37.775];
+const MAP_CENTER = [-122.413, 37.775];
 const MAP_ZOOM = 14.5;
 
 const SENSORS = [
-  { id:"cam1",  type:"camera", lng:-122.422, lat:37.782 },
-  { id:"cam2",  type:"camera", lng:-122.411, lat:37.781 },
-  { id:"cam3",  type:"camera", lng:-122.405, lat:37.776 },
-  { id:"cam4",  type:"camera", lng:-122.405, lat:37.769 },
-  { id:"cam5",  type:"camera", lng:-122.410, lat:37.766 },
-  { id:"cam6",  type:"camera", lng:-122.413, lat:37.778 },
-  { id:"rad1",  type:"radio",  lng:-122.415, lat:37.782 },
-  { id:"rad2",  type:"radio",  lng:-122.406, lat:37.767 },
-  { id:"rad3",  type:"radio",  lng:-122.409, lat:37.776 },
-  { id:"drone1",type:"drone",  lng:-122.406, lat:37.774 },
-  { id:"voice1",type:"voice",  lng:-122.411, lat:37.771 },
-  { id:"cad1",  type:"cad",    lng:-122.417, lat:37.776 },
+  { id:"cam1",  type:"camera", lng:-122.424, lat:37.784 },
+  { id:"cam2",  type:"camera", lng:-122.408, lat:37.783 },
+  { id:"cam3",  type:"camera", lng:-122.401, lat:37.777 },
+  { id:"cam4",  type:"camera", lng:-122.402, lat:37.768 },
+  { id:"cam5",  type:"camera", lng:-122.412, lat:37.764 },
+  { id:"cam6",  type:"camera", lng:-122.414, lat:37.779 },  // near incident
+  { id:"rad1",  type:"radio",  lng:-122.419, lat:37.783 },
+  { id:"rad2",  type:"radio",  lng:-122.403, lat:37.765 },
+  { id:"rad3",  type:"radio",  lng:-122.407, lat:37.775 },  // key radio
+  { id:"drone1",type:"drone",  lng:-122.400, lat:37.771 },
+  { id:"voice1",type:"voice",  lng:-122.410, lat:37.768 },
+  { id:"cad1",  type:"cad",    lng:-122.419, lat:37.774 },  // CAD terminal
 ];
 const SM = {
   camera:{color:C.camera,label:"Camera"},radio:{color:C.radio,label:"Radio"},
@@ -108,12 +104,12 @@ const SM = {
 // ════════════════════════════════════════════════════════
 const STEPS = [
   { id:0, phase:"intro",    headline:"The Dispatcher's Second Brain", sub:"Six radio channels. Four 911 calls holding. A critical detail just got buried.", time:null, center:MAP_CENTER, zoom:MAP_ZOOM, bearing:0, pitch:0, activate:[], connect:[], icon:"dispatch" },
-  { id:1, phase:"dispatch",  headline:"911 Call Received", sub:"Shots fired reported near Canal & Norman. The clock starts now.", time:"17:43:02", center:[-122.414, 37.777], zoom:15, bearing:10, pitch:30, activate:[], connect:[], icon:"dispatch" },
-  { id:2, phase:"voice",     headline:"Radio Transcription", sub:"VoiceBrain captures every word across all channels — transcribed and structured in real time.", time:"17:43:05", center:[-122.413, 37.777], zoom:15.5, bearing:15, pitch:40, activate:["rad3","cad1"], connect:[["rad3","cad1"]], icon:"voice" },
-  { id:3, phase:"camera",    headline:"Camera Correlation", sub:"AI automatically correlates the radio call with the nearest camera feed. Suspect vehicle identified.", time:"17:43:08", center:[-122.412, 37.778], zoom:16, bearing:20, pitch:45, activate:["cam6"], connect:[["cam6","rad3"],["cam6","cad1"]], icon:"camera" },
-  { id:4, phase:"alert",     headline:"KODI Alert Triggered", sub:"Suspect armed. Officer on scene in distress. Command notified instantly.", time:"17:43:12", center:[-122.411, 37.777], zoom:15.8, bearing:15, pitch:40, activate:[], connect:[], icon:"dispatch" },
-  { id:5, phase:"response",  headline:"Multi-District Response", sub:"Three districts responding. Pursuit crosses city lines. Everyone sees the same picture.", time:"17:43:15", center:[-122.412, 37.775], zoom:15.2, bearing:5, pitch:30, activate:["voice1"], connect:[["voice1","rad3"],["voice1","cam6"]], icon:"voice" },
-  { id:6, phase:"drone",     headline:"Drone Dispatched", sub:"Aerial unit en route with live video feed. ETA 90 seconds.", time:"17:43:18", center:[-122.408, 37.774], zoom:15.5, bearing:-10, pitch:50, activate:["drone1"], connect:[["drone1","cam6"],["drone1","voice1"]], icon:"drone" },
+  { id:1, phase:"dispatch",  headline:"911 Call Received", sub:"Shots fired reported near Canal & Norman. The clock starts now.", time:"17:43:02", center:[-122.413, 37.777], zoom:15, bearing:10, pitch:30, activate:[], connect:[], icon:"dispatch" },
+  { id:2, phase:"voice",     headline:"Radio Transcription", sub:"VoiceBrain captures every word across all channels — transcribed and structured in real time.", time:"17:43:05", center:[-122.413, 37.776], zoom:15.3, bearing:15, pitch:40, activate:["rad3","cad1"], connect:[["rad3","cad1"]], icon:"voice" },
+  { id:3, phase:"camera",    headline:"Camera Correlation", sub:"AI automatically correlates the radio call with the nearest camera feed. Suspect vehicle identified.", time:"17:43:08", center:[-122.412, 37.778], zoom:15.8, bearing:20, pitch:45, activate:["cam6"], connect:[["cam6","rad3"],["cam6","cad1"]], icon:"camera" },
+  { id:4, phase:"alert",     headline:"KODI Alert Triggered", sub:"Suspect armed. Officer on scene in distress. Command notified instantly.", time:"17:43:12", center:[-122.410, 37.777], zoom:15.5, bearing:15, pitch:40, activate:[], connect:[], icon:"dispatch" },
+  { id:5, phase:"response",  headline:"Multi-District Response", sub:"Three districts responding. Pursuit crosses city lines. Everyone sees the same picture.", time:"17:43:15", center:[-122.411, 37.774], zoom:15, bearing:5, pitch:30, activate:["voice1"], connect:[["voice1","rad3"],["voice1","cam6"]], icon:"voice" },
+  { id:6, phase:"drone",     headline:"Drone Dispatched", sub:"Aerial unit en route with live video feed. ETA 90 seconds.", time:"17:43:18", center:[-122.406, 37.772], zoom:15.3, bearing:-10, pitch:50, activate:["drone1"], connect:[["drone1","cam6"],["drone1","voice1"]], icon:"drone" },
   { id:7, phase:"result",    headline:"Complete Operational Picture", sub:"20 seconds. Voice, video, CAD — correlated. Information comes to the dispatcher.", time:"17:43:22", center:MAP_CENTER, zoom:MAP_ZOOM, bearing:0, pitch:0, activate:[], connect:[], icon:"cad" },
 ];
 const typeColor = t => t==="dispatch"||t==="alert"?C.dispatch:t==="voice"||t==="response"?C.voice:t==="camera"?C.camera:t==="drone"?C.drone:C.accent;
@@ -148,7 +144,6 @@ function SensorMarker({ sensor, isActive, map }) {
   useEffect(() => {
     if (!map) return;
     const el = document.createElement("div");
-    el.className = "vb-marker";
     elRef.current = el;
     const marker = new mapboxgl.Marker({ element: el, anchor: "center" })
       .setLngLat([sensor.lng, sensor.lat]).addTo(map);
@@ -157,8 +152,7 @@ function SensorMarker({ sensor, isActive, map }) {
   }, [map, sensor.lng, sensor.lat]);
 
   useEffect(() => {
-    const el = elRef.current;
-    if (!el) return;
+    const el = elRef.current; if (!el) return;
     const sz = isActive ? 60 : 30;
     const innerSz = isActive ? 38 : 22;
     el.style.width = `${sz}px`;
@@ -167,7 +161,6 @@ function SensorMarker({ sensor, isActive, map }) {
     el.style.position = "relative";
     el.innerHTML = "";
 
-    // Pulse rings
     if (isActive) {
       for (let d = 0; d < 2; d++) {
         const ring = document.createElement("div");
@@ -176,21 +169,16 @@ function SensorMarker({ sensor, isActive, map }) {
       }
     }
 
-    // Main circle
     const circle = document.createElement("div");
     circle.style.cssText = `position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:${sz}px;height:${sz}px;border-radius:50%;background:${isActive?m.color:"#111"};border:${isActive?"none":`2px solid ${C.muted}`};display:flex;align-items:center;justify-content:center;box-shadow:${isActive?`0 0 28px ${m.color}55, 0 0 56px ${m.color}22`:"none"};transition:all 0.7s cubic-bezier(0.23,1,0.32,1);`;
 
-    // Inner circle with SVG icon
     const inner = document.createElement("div");
     inner.style.cssText = `width:${innerSz}px;height:${innerSz}px;border-radius:50%;background:${isActive?"rgba(17,17,17,0.8)":"transparent"};display:flex;align-items:center;justify-content:center;`;
     const svgFn = ICON_SVG[sensor.type];
-    if (svgFn) {
-      inner.innerHTML = svgFn(isActive ? m.color : C.muted);
-    }
+    if (svgFn) inner.innerHTML = svgFn(isActive ? m.color : C.muted);
     circle.appendChild(inner);
     el.appendChild(circle);
 
-    // Label
     if (isActive) {
       const label = document.createElement("div");
       label.textContent = m.label.toUpperCase();
@@ -203,15 +191,93 @@ function SensorMarker({ sensor, isActive, map }) {
 }
 
 // ════════════════════════════════════════════════════════
-// CONNECTION LINES — updated continuously during flyTo
+// CONNECTION LINES — use Mapbox GeoJSON source/layer for
+// pixel-perfect alignment with markers
 // ════════════════════════════════════════════════════════
-function ConnectionLines({ connections, map }) {
+function useConnectionLines(map, connections, mapReady) {
+  const sourceAdded = useRef(false);
+  const animFrameRef = useRef(null);
+
+  useEffect(() => {
+    if (!map || !mapReady) return;
+
+    // Add source and layers once
+    if (!sourceAdded.current) {
+      map.addSource("vb-connections", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+      });
+      // Glow layer
+      map.addLayer({
+        id: "vb-conn-glow",
+        type: "line",
+        source: "vb-connections",
+        paint: {
+          "line-color": C.accent,
+          "line-width": 6,
+          "line-opacity": 0.12,
+          "line-blur": 4,
+        },
+      });
+      // Dashed line
+      map.addLayer({
+        id: "vb-conn-dash",
+        type: "line",
+        source: "vb-connections",
+        paint: {
+          "line-color": C.accent,
+          "line-width": 1.8,
+          "line-opacity": 0.6,
+          "line-dasharray": [3, 2],
+        },
+      });
+      sourceAdded.current = true;
+    }
+
+    // Update data
+    const features = connections.map(([fromId, toId]) => {
+      const from = SENSORS.find(s => s.id === fromId);
+      const to = SENSORS.find(s => s.id === toId);
+      if (!from || !to) return null;
+      return {
+        type: "Feature",
+        geometry: {
+          type: "LineString",
+          coordinates: [[from.lng, from.lat], [to.lng, to.lat]],
+        },
+      };
+    }).filter(Boolean);
+
+    const src = map.getSource("vb-connections");
+    if (src) {
+      src.setData({ type: "FeatureCollection", features });
+    }
+
+    // Animate dash offset
+    let dashOffset = 0;
+    const animateDash = () => {
+      dashOffset = (dashOffset + 0.05) % 5;
+      if (map.getLayer("vb-conn-dash")) {
+        map.setPaintProperty("vb-conn-dash", "line-dasharray", [3, 2]);
+      }
+      animFrameRef.current = requestAnimationFrame(animateDash);
+    };
+    animateDash();
+
+    return () => {
+      cancelAnimationFrame(animFrameRef.current);
+    };
+  }, [map, connections, mapReady]);
+}
+
+// ════════════════════════════════════════════════════════
+// Traveling particle overlays (SVG on top of map)
+// ════════════════════════════════════════════════════════
+function TravelingParticles({ connections, map }) {
   const [points, setPoints] = useState([]);
-  const rafRef = useRef(null);
 
   useEffect(() => {
     if (!map || !connections.length) { setPoints([]); return; }
-
     const update = () => {
       const pts = connections.map(([fromId, toId]) => {
         const from = SENSORS.find(s => s.id === fromId);
@@ -223,11 +289,8 @@ function ConnectionLines({ connections, map }) {
       }).filter(Boolean);
       setPoints(pts);
     };
-
-    // Use render event for smooth updates during flyTo
     map.on("render", update);
     update();
-
     return () => { map.off("render", update); };
   }, [connections, map]);
 
@@ -236,17 +299,15 @@ function ConnectionLines({ connections, map }) {
   return (
     <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", zIndex: 6, pointerEvents: "none" }}>
       <defs>
-        <filter id="glow"><feGaussianBlur stdDeviation="4" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+        <filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
       </defs>
       {points.map((p, i) => (
         <g key={p.key}>
-          <line x1={p.x1} y1={p.y1} x2={p.x2} y2={p.y2} stroke={C.accent} strokeWidth="6" strokeOpacity="0.1" filter="url(#glow)" />
-          <line x1={p.x1} y1={p.y1} x2={p.x2} y2={p.y2} stroke={C.accent} strokeWidth="1.5" strokeDasharray="8 6" className="vb-dash-move" />
-          <circle r="4" fill={C.white} opacity="0.85" filter="url(#glow)">
-            <animateMotion dur={`${1.8 + i * 0.3}s`} repeatCount="indefinite" path={`M${p.x1},${p.y1} L${p.x2},${p.y2}`} keyPoints="0;1" keyTimes="0;1" calcMode="linear" />
+          <circle r="4" fill={C.white} opacity="0.8" filter="url(#glow)">
+            <animateMotion dur={`${2 + i * 0.4}s`} repeatCount="indefinite" path={`M${p.x1},${p.y1} L${p.x2},${p.y2}`} keyPoints="0;1" keyTimes="0;1" calcMode="linear" />
           </circle>
-          <circle r="3" fill={C.accent} opacity="0.5">
-            <animateMotion dur={`${1.8 + i * 0.3}s`} repeatCount="indefinite" begin={`${0.9 + i * 0.15}s`} path={`M${p.x1},${p.y1} L${p.x2},${p.y2}`} keyPoints="0;1" keyTimes="0;1" calcMode="linear" />
+          <circle r="2.5" fill={C.accent} opacity="0.5">
+            <animateMotion dur={`${2 + i * 0.4}s`} repeatCount="indefinite" begin={`${1 + i * 0.2}s`} path={`M${p.x1},${p.y1} L${p.x2},${p.y2}`} keyPoints="0;1" keyTimes="0;1" calcMode="linear" />
           </circle>
         </g>
       ))}
@@ -255,19 +316,16 @@ function ConnectionLines({ connections, map }) {
 }
 
 // ════════════════════════════════════════════════════════
-// MAP OVERLAY — positions React content at a lng/lat
+// MAP OVERLAY
 // ════════════════════════════════════════════════════════
 function MapOverlay({ lng, lat, map, children, style }) {
   const [pos, setPos] = useState(null);
-
   useEffect(() => {
     if (!map) return;
     const update = () => { const p = map.project([lng, lat]); setPos({ x: p.x, y: p.y }); };
-    map.on("render", update);
-    update();
+    map.on("render", update); update();
     return () => { map.off("render", update); };
   }, [map, lng, lat]);
-
   if (!pos) return null;
   return <div style={{ position: "absolute", left: pos.x, top: pos.y, ...style }}>{children}</div>;
 }
@@ -290,7 +348,6 @@ export default function App() {
     return () => clearInterval(check);
   }, []);
 
-  // Fly to step
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
@@ -298,10 +355,8 @@ export default function App() {
     map.flyTo({ center: s.center, zoom: s.zoom, bearing: s.bearing, pitch: s.pitch, duration: 1500, essential: true });
   }, [step, mapReady]);
 
-  // Wheel + touch navigation
   useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
+    const el = containerRef.current; if (!el) return;
     const SENS = 0.0008;
     const handleWheel = (e) => {
       e.preventDefault();
@@ -333,6 +388,9 @@ export default function App() {
     return { active, conns };
   }, [step]);
 
+  // Connection lines via Mapbox layer (pixel-perfect)
+  useConnectionLines(mapRef.current, state.conns, mapReady);
+
   const cur = STEPS[step];
   const { active, conns } = state;
   const isResult = cur.phase === "result";
@@ -341,8 +399,6 @@ export default function App() {
     <div ref={containerRef} style={{ position: "relative", width: "100%", height: "100vh", overflow: "hidden", background: C.bg, fontFamily: "'SF Pro Display','SF Pro Text',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif", color: C.white, display: "flex", touchAction: "none" }}>
       <style>{`
         @keyframes vbP{0%{transform:translate(-50%,-50%) scale(1);opacity:.3}100%{transform:translate(-50%,-50%) scale(3);opacity:0}}
-        .vb-dash-move{animation:vbDM 2s linear infinite}
-        @keyframes vbDM{from{stroke-dashoffset:28}to{stroke-dashoffset:0}}
         @keyframes vbGlow{0%,100%{opacity:.6}50%{opacity:1}}
         @keyframes vbBP{0%,100%{box-shadow:0 0 0 0 rgba(221,68,82,.4),inset 0 0 30px rgba(221,68,82,.05)}50%{box-shadow:0 0 0 10px rgba(221,68,82,0),inset 0 0 50px rgba(221,68,82,.12)}}
         @keyframes vbShake{0%,100%{transform:translate(-50%,-100%) scale(1)}10%{transform:translate(calc(-50% - 3px),-100%)}30%{transform:translate(calc(-50% + 3px),-100%)}50%{transform:translate(-50%,-100%) scale(1.02)}70%{transform:translate(calc(-50% + 1px),-100%)}}
@@ -367,8 +423,7 @@ export default function App() {
                 display: "flex", alignItems: "flex-start", gap: 14, padding: "14px 24px", cursor: "pointer",
                 background: isActive ? "rgba(96,166,251,0.06)" : "transparent",
                 borderLeft: isActive ? `3px solid ${color}` : "3px solid transparent",
-                transition: "all 0.4s ease",
-                opacity: isActive ? 1 : isPast ? 0.45 : 0.22,
+                transition: "all 0.4s ease", opacity: isActive ? 1 : isPast ? 0.45 : 0.22,
               }}>
                 <div style={{
                   width: 32, height: 32, borderRadius: "50%", flexShrink: 0, marginTop: 1,
@@ -379,7 +434,7 @@ export default function App() {
                   <Ic size={16} color={isActive ? "#111" : isPast ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.12)"} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  {s.time && <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 1.5, color: isActive ? color : "rgba(255,255,255,0.25)", fontVariantNumeric: "tabular-nums", marginBottom: 2, transition: "color 0.4s ease" }}>{s.time}</div>}
+                  {s.time && <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 1.5, color: isActive ? color : "rgba(255,255,255,0.25)", fontVariantNumeric: "tabular-nums", marginBottom: 2 }}>{s.time}</div>}
                   <div style={{ fontSize: 14, fontWeight: isActive ? 700 : 500, color: isActive ? C.white : "rgba(255,255,255,0.45)", transition: "all 0.4s ease", lineHeight: 1.35 }}>{s.headline}</div>
                   {isActive && <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", lineHeight: 1.5, marginTop: 6 }}>{s.sub}</div>}
                 </div>
@@ -415,11 +470,13 @@ export default function App() {
         <MapboxMap mapRef={mapRef} mapContainerRef={mapContainerRef} />
 
         {mapReady && SENSORS.map(s => <SensorMarker key={s.id} sensor={s} isActive={active.has(s.id)} map={mapRef.current} />)}
-        {mapReady && <ConnectionLines connections={conns} map={mapRef.current} />}
+
+        {/* Traveling particles overlay */}
+        {mapReady && <TravelingParticles connections={conns} map={mapRef.current} />}
 
         {/* ── SHOTS FIRED ── */}
         {mapReady && step >= 1 && step < 7 && (
-          <MapOverlay lng={-122.414} lat={37.779} map={mapRef.current} style={{ transform: "translate(-50%,-100%)", zIndex: 22, pointerEvents: "none", animation: "vbShake 0.6s ease 0.2s both" }}>
+          <MapOverlay lng={-122.413} lat={37.781} map={mapRef.current} style={{ transform: "translate(-50%,-100%)", zIndex: 22, pointerEvents: "none", animation: "vbShake 0.6s ease 0.2s both" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "14px 24px", borderRadius: 50, background: "rgba(0,0,0,0.85)", border: `2px solid ${C.danger}`, backdropFilter: "blur(24px)", animation: "vbBP 2s ease infinite", whiteSpace: "nowrap" }}>
               <div style={{ width: 44, height: 44, borderRadius: "50%", background: C.dispatch, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#111", display: "flex", alignItems: "center", justifyContent: "center" }}><DispatchIcon size={20} color={C.dispatch} /></div>
@@ -438,7 +495,7 @@ export default function App() {
 
         {/* ── Voice transcription ── */}
         {mapReady && step >= 2 && step < 7 && (
-          <MapOverlay lng={-122.420} lat={37.774} map={mapRef.current} style={{ transform: "translate(-50%,-50%)", zIndex: 15, pointerEvents: "none" }}>
+          <MapOverlay lng={-122.422} lat={37.773} map={mapRef.current} style={{ transform: "translate(-50%,-50%)", zIndex: 15, pointerEvents: "none" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 20px", borderRadius: 40, background: C.glass, border: `1px solid ${C.glassBorder}`, backdropFilter: "blur(24px)", whiteSpace: "nowrap" }}>
               <div style={{ width: 40, height: 40, borderRadius: "50%", background: C.voice, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#111", display: "flex", alignItems: "center", justifyContent: "center" }}><VoiceIcon size={18} color={C.voice} /></div>
@@ -451,9 +508,19 @@ export default function App() {
           </MapOverlay>
         )}
 
+        {/* ── Camera Match tooltip ── */}
+        {mapReady && step >= 3 && step < 7 && (
+          <MapOverlay lng={-122.414} lat={37.779} map={mapRef.current} style={{ transform: "translate(30px, -100%)", zIndex: 18, pointerEvents: "none" }}>
+            <div style={{ background: C.glass, border: `1px solid ${C.glassBorder}`, borderRadius: 12, padding: "12px 18px", textAlign: "center", backdropFilter: "blur(20px)", maxWidth: 210 }}>
+              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 1.5, marginBottom: 4, color: C.camera, textTransform: "uppercase" }}>● Camera Match</div>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.88)", lineHeight: 1.4 }}>Suspect vehicle identified at Canal & Norman</div>
+            </div>
+          </MapOverlay>
+        )}
+
         {/* ── KODI Alert ── */}
         {mapReady && step >= 4 && step < 7 && (
-          <MapOverlay lng={-122.404} lat={37.780} map={mapRef.current} style={{ transform: "translate(-50%,-50%)", zIndex: 25, pointerEvents: "none" }}>
+          <MapOverlay lng={-122.400} lat={37.781} map={mapRef.current} style={{ transform: "translate(-50%,-50%)", zIndex: 25, pointerEvents: "none" }}>
             <div style={{ width: 230, borderRadius: 14, background: "rgba(30,30,30,0.9)", border: `2px solid rgba(221,68,82,0.5)`, backdropFilter: "blur(35px)", textAlign: "center", overflow: "hidden", boxShadow: `0 0 40px rgba(221,68,82,0.15),0 16px 48px rgba(0,0,0,0.5)` }}>
               <div style={{ padding: "14px 14px 4px", fontSize: 15, fontWeight: 700, color: C.danger }}>⚠ KODI Alert</div>
               <div style={{ padding: "0 14px 12px", fontSize: 12, color: "rgba(255,255,255,0.88)", lineHeight: 1.45 }}>Suspect armed. Officer on scene in distress.</div>
@@ -462,6 +529,17 @@ export default function App() {
                 <div style={{ width: 1, background: "rgba(84,84,88,0.65)" }} />
                 <div style={{ flex: 1, padding: "9px 0", fontSize: 13, color: "#0A84FF", fontWeight: 600, textAlign: "center" }}>Open</div>
               </div>
+            </div>
+          </MapOverlay>
+        )}
+
+        {/* ── Multi-District Speech Bubble ── */}
+        {mapReady && step >= 5 && step < 7 && (
+          <MapOverlay lng={-122.408} lat={37.770} map={mapRef.current} style={{ transform: "translate(-50%, -100%)", zIndex: 18, pointerEvents: "none" }}>
+            <div style={{ background: "rgba(40,42,48,0.92)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 12, padding: "12px 20px", maxWidth: 280, fontSize: 14, lineHeight: 1.4, letterSpacing: -0.3, backdropFilter: "blur(15px)" }}>
+              <span style={{ color: C.accent, fontWeight: 600, fontSize: 10, letterSpacing: 1, display: "block", marginBottom: 4 }}>Multi-District</span>
+              Three districts responding. Pursuit crosses city lines.
+              <div style={{ position: "absolute", bottom: -7, left: 28, width: 14, height: 14, background: "rgba(40,42,48,0.92)", border: "1px solid rgba(255,255,255,0.18)", borderTop: "none", borderLeft: "none", transform: "rotate(45deg)", borderRadius: "0 0 3px 0" }} />
             </div>
           </MapOverlay>
         )}
@@ -498,7 +576,7 @@ export default function App() {
         {/* Progress bar */}
         <div style={{ position: "absolute", bottom: 0, left: 0, height: 3, zIndex: 50, width: `${(step / (STEPS.length - 1)) * 100}%`, background: `linear-gradient(90deg,${C.voice},${C.accent},${C.camera})`, transition: "width 0.5s ease" }} />
 
-        {/* Scroll hint — much more prominent */}
+        {/* Scroll hint */}
         {step === 0 && (
           <div style={{ position: "absolute", bottom: 48, left: "50%", transform: "translateX(-50%)", zIndex: 35, display: "flex", flexDirection: "column", alignItems: "center", gap: 10, pointerEvents: "none" }}>
             <div style={{ padding: "10px 28px", borderRadius: 30, background: "rgba(96,166,251,0.1)", border: "1px solid rgba(96,166,251,0.25)", backdropFilter: "blur(10px)" }}>
