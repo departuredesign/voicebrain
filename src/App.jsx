@@ -110,19 +110,19 @@ function SensorMarker({ sensor, isActive, map }) {
       }
     }
 
-    // Main circle
+    // Main circle — the PNG icons are white-on-black, so we use them as the
+    // inner fill. The circle border provides the colored ring when active.
     const circle = document.createElement("div");
-    circle.style.cssText = `position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:${sz}px;height:${sz}px;border-radius:50%;background:${isActive?m.color:"#111"};border:${isActive?"none":`2px solid ${C.muted}`};display:flex;align-items:center;justify-content:center;box-shadow:${isActive?`0 0 28px ${m.color}55,0 0 56px ${m.color}22`:"none"};transition:all 0.7s cubic-bezier(0.23,1,0.32,1);`;
+    circle.style.cssText = `position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:${sz}px;height:${sz}px;border-radius:50%;background:#111;border:${isActive?`3px solid ${m.color}`:`2px solid ${C.muted}`};display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:${isActive?`0 0 28px ${m.color}55,0 0 56px ${m.color}22`:"none"};transition:all 0.7s cubic-bezier(0.23,1,0.32,1);`;
 
-    // Inner circle with PNG icon
-    const inner = document.createElement("div");
-    inner.style.cssText = `width:${isActive?40:22}px;height:${isActive?40:22}px;border-radius:50%;background:${isActive?"rgba(17,17,17,0.8)":"transparent"};display:flex;align-items:center;justify-content:center;`;
-
+    // PNG icon image — fills the circle
     const img = document.createElement("img");
-    img.src = isActive ? icons.active : icons.inactive;
-    img.style.cssText = `width:${iconSz}px;height:${iconSz}px;object-fit:contain;`;
-    inner.appendChild(img);
-    circle.appendChild(inner);
+    img.src = icons.active;
+    img.alt = "";
+    img.width = isActive ? 36 : 18;
+    img.height = isActive ? 36 : 18;
+    img.style.cssText = `display:block;object-fit:contain;opacity:${isActive?1:0.5};transition:all 0.7s ease;`;
+    circle.appendChild(img);
     el.appendChild(circle);
 
     // Label
